@@ -1,0 +1,8 @@
+Package: com.spec.jbhellotweak
+Name: JBHelloTweak
+Version: 1.0.0
+Architecture: iphoneos-arm
+Maintainer: Spec
+Description: Proof-of-life tweak for the iOS 27 simulator jailbreak.
+Author: Spec
+Section: Tweaks
