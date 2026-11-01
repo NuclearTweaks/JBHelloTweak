@@ -23,6 +23,9 @@ include $(THEOS_MAKE_PATH)/tweak.mk
 # Sign the FINAL staged bytes (Apple Silicon SIGKILLs stale signatures). Staged
 # path is scheme-dependent (rootless=/var/jb/..., sim=rootful) → locate the dylib.
 ifneq ($(filter simulator%,$(TARGET)),)
+# theos defaults sim signing to `codesign --sign 'Apple Development'` (needs a
+# real cert); the JB sim accepts ad-hoc — keep the build cert-free.
+TARGET_CODESIGN_FLAGS = --force --sign -
 SIGN_CMD = codesign --force --sign -
 else
 SIGN_CMD = $(shell command -v $(LDID) >/dev/null 2>&1 && echo "$(LDID) -S" || echo "codesign --force --sign -")
