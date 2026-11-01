@@ -1,0 +1,10 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [closed]
+jobs:
+  ci:
+    uses: NuclearTweaks/.github/.github/workflows/tweak-ci.yml@main
+    secrets: inherit

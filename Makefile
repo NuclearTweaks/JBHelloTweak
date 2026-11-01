@@ -1,16 +1,32 @@
-TARGET = simulator:clang::12.0
-ARCHS = arm64
+# JBHelloTweak — proof-of-life for the NuclearTweaks pipeline
+#
+# Device build (CI default):   make package FINALPACKAGE=1        (rootless /var/jb)
+# Simulator build (local dev): tools/sim-test.sh JBHelloTweak     (Mac, rootful paths)
+
+TARGET = iphone:clang:latest:15.0
+ARCHS = arm64 arm64e
+THEOS_PACKAGE_SCHEME = rootless
+LDID ?= ldid
 
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = JBHelloTweak
-JBHelloTweak_FILES = Tweak.x
-JBHelloTweak_GENERATOR = internal
+JBHelloTweak_FILES = JBHelloTweak.x
 JBHelloTweak_CFLAGS = -fobjc-arc
+# logos emits MSHookMessageEx/MSHookFunction calls; resolve them at RUNTIME from
+# whatever provides `Depends: mobilesubstrate` (libhooker/ElleKit). Never link a
+# concrete substrate binary, never hardcode /var/jb paths — see knowledge/packaging.md.
+JBHelloTweak_LDFLAGS = -Wl,-undefined,dynamic_lookup
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-# Apple Silicon sims SIGKILL stale signatures ("Invalid Page") — sign the
-# final staged bytes last, per theos/simject community gotcha.
+# Sign the FINAL staged bytes (Apple Silicon SIGKILLs stale signatures). Staged
+# path is scheme-dependent (rootless=/var/jb/..., sim=rootful) → locate the dylib.
+ifneq ($(filter simulator%,$(TARGET)),)
+SIGN_CMD = codesign --force --sign -
+else
+SIGN_CMD = $(shell command -v $(LDID) >/dev/null 2>&1 && echo "$(LDID) -S" || echo "codesign --force --sign -")
+endif
 after-stage::
-	codesign --force --sign - "$(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries/JBHelloTweak.dylib"
+	@f=$$(find "$(THEOS_STAGING_DIR)" -name '$(TWEAK_NAME).dylib' -type f -print -quit); \
+	$(SIGN_CMD) "$$f" && echo "signed: $$f"
